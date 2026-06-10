@@ -60,11 +60,11 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 .mrow{background:#fff;border:1px solid #e8e8e8;border-radius:10px;overflow:hidden;font-size:13px}
 .mrow-hdr{display:flex;justify-content:space-between;padding:6px 12px;font-size:10px;color:#888;background:#fafafa;border-bottom:1px solid #f0f0f0}
 .mrow-teams{display:grid;grid-template-columns:1fr 54px 1fr;align-items:center;min-height:48px}
-.mleft{display:flex;align-items:center;justify-content:flex-end;gap:6px;padding:10px 18px 10px 10px;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%)}
-.mmid{display:flex;align-items:center;justify-content:center;background:#fff;z-index:1}
-.mright{display:flex;align-items:center;gap:6px;padding:10px 10px 10px 18px;clip-path:polygon(10px 0,100% 0,100% 100%,10px 100%,0 50%)}
-.m-name{font-weight:600;font-size:13px;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.m-grp{font-size:10px;color:#aaa;font-weight:400;flex-shrink:0}
+.mleft{display:flex;align-items:center;justify-content:flex-end;gap:6px;padding:10px 18px 10px 10px;clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%);min-width:0}
+.mmid{display:flex;align-items:center;justify-content:center;flex-direction:column;gap:4px;background:#fff;z-index:1}
+.mright{display:flex;align-items:center;gap:6px;padding:10px 10px 10px 18px;clip-path:polygon(10px 0,100% 0,100% 100%,10px 100%,0 50%);min-width:0}
+.m-name{font-weight:600;font-size:13px;color:#1a1a1a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;flex:1}
+.m-grp{font-size:10px;color:#aaa;font-weight:400;flex-shrink:0;white-space:nowrap}
 .m-score{font-size:15px;font-weight:700;color:#1a1a1a;text-align:center;white-space:nowrap}
 .m-vs{font-size:11px;color:#ccc;text-align:center}
 
