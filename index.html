@@ -622,7 +622,7 @@ window.openTicketModal=function(matchStr){
   var round=m.round||'';
   var key=round.indexOf('Group')===0?'group':round;
   var td=TICKET_DATA[key]||TICKET_DATA['group'];
-  document.getElementById('tm-title').textContent='&#128178; '+td.label+' Ticket Prices';
+  document.getElementById('tm-title').innerHTML='\uD83D\uDCB2 '+td.label+' Ticket Prices';
   document.getElementById('tm-match').textContent=m.t1+' vs '+m.t2+' \u00b7 '+m.date+' '+m.time;
 
   var facts=TICKET_FACTS.map(function(f){
