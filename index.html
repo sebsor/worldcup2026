@@ -150,9 +150,36 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;ba
 /* Misc */
 .wload{color:#888;font-size:14px;padding:40px;text-align:center}
 .notice{background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px 14px;margin-bottom:14px;font-size:12px;color:#795548}
+
+/* Ticket modal */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,0.55);z-index:9999;align-items:flex-end;justify-content:center}
+.modal-overlay.open{display:flex}
+.modal{background:#fff;border-radius:16px 16px 0 0;width:100%;max-width:500px;padding:20px;max-height:85vh;overflow-y:auto}
+.modal-drag{width:40px;height:4px;background:#ddd;border-radius:2px;margin:0 auto 16px}
+.modal-title{font-size:16px;font-weight:700;color:#1a1a1a;margin-bottom:4px}
+.modal-match{font-size:12px;color:#888;margin-bottom:16px}
+.modal-close{float:right;background:none;border:none;font-size:20px;color:#aaa;cursor:pointer;margin-top:-4px}
+.ticket-range{background:#f0faf4;border:1px solid #b2dfca;border-radius:10px;padding:14px;margin-bottom:14px;display:flex;justify-content:space-between;align-items:center}
+.ticket-from{font-size:11px;color:#555;margin-bottom:3px}
+.ticket-price{font-size:22px;font-weight:700;color:#1a7a3c}
+.ticket-price-high{font-size:22px;font-weight:700;color:#c0392b}
+.modal-fact{display:flex;gap:10px;padding:10px 0;border-top:1px solid #f0f0f0;font-size:12px;color:#444;line-height:1.5}
+.modal-fact-icon{font-size:16px;flex-shrink:0;margin-top:1px}
+.modal-disclaimer{font-size:11px;color:#aaa;margin-top:14px;line-height:1.5;padding-top:12px;border-top:1px solid #f0f0f0}
+.ticket-btn{display:flex;align-items:center;justify-content:center;font-size:11px;color:#1a7a3c;background:none;border:none;cursor:pointer;padding:2px 0;font-family:inherit;gap:3px;width:100%}
 </style>
 </head>
 <body>
+
+<div class="modal-overlay" id="ticket-modal" onclick="if(event.target===this)closeTicketModal()">
+  <div class="modal">
+    <div class="modal-drag"></div>
+    <button class="modal-close" onclick="closeTicketModal()">&#10005;</button>
+    <div class="modal-title" id="tm-title"></div>
+    <div class="modal-match" id="tm-match"></div>
+    <div id="tm-body"></div>
+  </div>
+</div>
 
 <div class="hdr">
   <div class="hdr-top">
@@ -288,6 +315,7 @@ function mrow(m){
   var has=m.score1!==undefined&&m.score2!==undefined;
   var sc=has?'<div class="m-score">'+m.score1+' \u2013 '+m.score2+'</div>':'<div class="m-vs">vs</div>';
   var bg1=teamBg(m.team1),bg2=teamBg(m.team2);
+  var matchStr=JSON.stringify({t1:m.team1,t2:m.team2,round:m.round||m.group,date:fmtDate(m.tzDate),time:m.tzTime}).replace(/'/g,'&#39;');
   return '<div class="mrow">'+
     '<div class="mrow-hdr"><span>'+fmtDate(m.tzDate)+' &middot; '+m.tzTime+' '+currentTzLabel+'</span><span>'+m.ground+'</span></div>'+
     '<div class="mrow-teams">'+
@@ -296,7 +324,10 @@ function mrow(m){
         '<span class="m-name">'+m.team1+'</span>'+
         flag(m.team1,18)+
       '</div>'+
-      '<div class="mmid">'+sc+'</div>'+
+      '<div class="mmid" style="flex-direction:column;gap:4px">'+
+        sc+
+        '<button class="ticket-btn" onclick="openTicketModal(\''+matchStr.replace(/"/g,'&quot;')+'\')">&#128178;</button>'+
+      '</div>'+
       '<div class="mright" style="background:'+bg2+'">'+
         flag(m.team2,18)+
         '<span class="m-name">'+m.team2+'</span>'+
@@ -565,7 +596,56 @@ window.wcTzChange=function(tz){
   if(document.getElementById('wc-ko').style.display==='block') renderKo();
 };
 
-if('serviceWorker' in navigator) navigator.serviceWorker.register('sw.js');
+var TICKET_DATA={
+  'group':    {low:120,  high:750,  label:'Group Stage'},
+  'Round of 32': {low:105, high:750,  label:'Round of 32'},
+  'Round of 16': {low:170, high:980,  label:'Round of 16'},
+  'Quarter-final':{low:275,high:1775, label:'Quarter-final'},
+  'Semi-final':   {low:420,high:3295, label:'Semi-final'},
+  'Final':        {low:2030,high:8680,label:'Final'}
+};
+
+var TICKET_FACTS=[
+  {icon:'&#128561;','text':'This is the most expensive World Cup in history. A Cat 1 Final ticket is 4\u00d7 pricier than the Qatar 2022 equivalent.'},
+  {icon:'&#128200;','text':'FIFA uses dynamic pricing for the first time \u2014 prices shift based on demand, teams, venue and when you buy.'},
+  {icon:'&#128176;','text':'Four seat categories exist. Cat 1 is the lowest rows (most expensive). Cat 4 is upper corners (cheapest) \u2014 but very limited.'},
+  {icon:'&#128683;','text':'A "supporter tier" at $60 exists but is allocated exclusively through national football federations \u2014 not publicly available.'},
+  {icon:'&#9878;&#65039;','text':'Football Supporters Europe filed a formal complaint with the European Commission in March 2026 over the pricing practices.'},
+  {icon:'&#127967;','text':'Venue matters a lot. MetLife (Final) and SoFi (LA) are consistently the most expensive. Smaller venues like Toronto are cheaper.'},
+  {icon:'&#128722;','text':'Resale is wild. Four Final seats were listed at nearly $2.3 million each on FIFA\'s own resale platform. FIFA takes a 30% cut.'},
+  {icon:'&#128664;','text':'Getting there adds up too. Hotels in host cities jumped 300%+, parking costs $300+ at some venues, and NJ Transit charged $150 round-trip to MetLife.'}
+];
+
+window.openTicketModal=function(matchStr){
+  var m;
+  try{m=JSON.parse(matchStr.replace(/&quot;/g,'"').replace(/&#39;/g,"'"));}catch(e){return;}
+  var round=m.round||'';
+  var key=round.indexOf('Group')===0?'group':round;
+  var td=TICKET_DATA[key]||TICKET_DATA['group'];
+  document.getElementById('tm-title').textContent='&#128178; '+td.label+' Ticket Prices';
+  document.getElementById('tm-match').textContent=m.t1+' vs '+m.t2+' \u00b7 '+m.date+' '+m.time;
+
+  var facts=TICKET_FACTS.map(function(f){
+    return '<div class="modal-fact"><span class="modal-fact-icon">'+f.icon+'</span><span>'+f.text+'</span></div>';
+  }).join('');
+
+  document.getElementById('tm-body').innerHTML=
+    '<div class="ticket-range">'+
+      '<div><div class="ticket-from">Cheapest (Cat 4)</div><div class="ticket-price">$'+td.low.toLocaleString()+'</div></div>'+
+      '<div style="color:#ccc;font-size:20px">\u2194</div>'+
+      '<div style="text-align:right"><div class="ticket-from">Most expensive (Cat 1)</div><div class="ticket-price-high">$'+td.high.toLocaleString()+'</div></div>'+
+    '</div>'+
+    facts+
+    '<div class="modal-disclaimer">Prices shown are official FIFA face-value base prices from the October 2025 phase. Dynamic pricing means actual current prices may be significantly higher. Check <strong>fifa.com/tickets</strong> for availability.</div>';
+
+  document.getElementById('ticket-modal').classList.add('open');
+  document.body.style.overflow='hidden';
+};
+
+window.closeTicketModal=function(){
+  document.getElementById('ticket-modal').classList.remove('open');
+  document.body.style.overflow='';
+};
 load();
 </script>
 </body>
