@@ -25,6 +25,8 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;co
 .hdr-tz{display:flex;align-items:center;gap:6px}
 .hdr-tz select{font-size:11px;padding:4px 6px;border:1px solid rgba(255,255,255,0.4);border-radius:6px;background:rgba(255,255,255,0.15);color:#fff;font-family:inherit;cursor:pointer;max-width:150px}
 .hdr-tz select option{background:#1a7a3c;color:#fff}
+.tv-btn{background:rgba(255,255,255,0.15);border:1px solid rgba(255,255,255,0.4);border-radius:6px;width:30px;height:30px;font-size:15px;cursor:pointer;color:#fff;flex-shrink:0;display:flex;align-items:center;justify-content:center}
+.tv-btn:active{background:rgba(255,255,255,0.3)}
 
 /* Tab bar */
 .tabs{display:flex;overflow-x:auto;background:#155f2e;-webkit-overflow-scrolling:touch;scrollbar-width:none;padding-left:4px}
@@ -170,6 +172,21 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;co
 .modal-fact-icon{font-size:16px;flex-shrink:0;margin-top:1px}
 .modal-disclaimer{font-size:11px;color:#aaa;margin-top:14px;line-height:1.5;padding-top:12px;border-top:1px solid #f0f0f0}
 .ticket-btn{display:flex;align-items:center;justify-content:center;font-size:11px;color:#1a7a3c;background:none;border:none;cursor:pointer;padding:2px 0;font-family:inherit;gap:3px;width:100%}
+
+/* TV schedule modal */
+.tv-day{font-size:11px;font-weight:700;color:#1a7a3c;text-transform:uppercase;letter-spacing:0.06em;margin:14px 0 6px;padding-bottom:4px;border-bottom:1px solid #eee}
+.tv-day:first-child{margin-top:0}
+.tv-row{display:flex;align-items:center;gap:10px;padding:7px 0;font-size:13px;border-bottom:1px solid #f5f5f5}
+.tv-row:last-child{border-bottom:none}
+.tv-time{font-size:12px;color:#888;min-width:90px;flex-shrink:0}
+.tv-match{flex:1;color:#1a1a1a;font-weight:500;line-height:1.3}
+.tv-venue{font-size:11px;color:#aaa;display:block;margin-top:1px;font-weight:400}
+.tv-chan{font-size:10px;font-weight:700;padding:2px 7px;border-radius:4px;flex-shrink:0;white-space:nowrap}
+.tv-tv4{background:#0090d4;color:#fff}
+.tv-svt1{background:#1a7a3c;color:#fff}
+.tv-svt2{background:#5cb85c;color:#fff}
+.tv-search{padding:9px 12px;font-size:14px;border:1px solid #ddd;border-radius:8px;outline:none;font-family:inherit;color:#1a1a1a;background:#fff;width:100%;margin-bottom:12px}
+.tv-search:focus{border-color:#1a7a3c}
 </style>
 </head>
 <body>
@@ -191,6 +208,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Arial,sans-serif;co
       <div class="hdr-sub">Canada &bull; Mexico &bull; USA &bull; 11 Jun &ndash; 19 Jul</div>
     </div>
     <div class="hdr-tz">
+      <button class="tv-btn" onclick="openTvModal()" title="TV schedule">&#128250;</button>
       <select id="wc-tz" onchange="wcTzChange(this.value)">
         <option value="Europe/Stockholm">Stockholm</option>
         <option value="Europe/London">London</option>
@@ -597,6 +615,226 @@ window.wcTzChange=function(tz){
   recomputeTimes();
   renderOv();renderGr();renderMa(curF);
   if(document.getElementById('wc-ko').style.display==='block') renderKo();
+};
+
+var TV_SCHEDULE=[
+{d:'Tor 11 jun',m:[
+  {t:'21.00',ch:'TV4',match:'Mexiko - Sydafrika',venue:'Mexico City'}
+]},
+{d:'Fre 12 jun',m:[
+  {t:'04.00',ch:'TV4',match:'Sydkorea - Tjeckien',venue:'Guadalajara'},
+  {t:'21.00',ch:'SVT1',match:'Kanada - Bosnien-Hercegovina',venue:'Toronto'}
+]},
+{d:'Lör 13 jun',m:[
+  {t:'03.00',ch:'TV4',match:'USA - Paraguay',venue:'Los Angeles'},
+  {t:'21.00',ch:'TV4',match:'Qatar - Schweiz',venue:'San Francisco'}
+]},
+{d:'Sön 14 jun',m:[
+  {t:'00.00',ch:'SVT1',match:'Brasilien - Marocko',venue:'New Jersey'},
+  {t:'03.00',ch:'SVT1',match:'Haiti - Skottland',venue:'Boston'},
+  {t:'06.00',ch:'TV4',match:'Australien - Turkiet',venue:'Vancouver'},
+  {t:'19.00',ch:'TV4',match:'Tyskland - Curaçao',venue:'Houston'},
+  {t:'22.00',ch:'TV4',match:'Nederländerna - Japan',venue:'Dallas'}
+]},
+{d:'Mån 15 jun',m:[
+  {t:'04.00',ch:'SVT1',match:'Sverige - Tunisien',venue:'Monterrey'},
+  {t:'18.00',ch:'SVT1/2',match:'Spanien - Kap Verde',venue:'Atlanta'},
+  {t:'21.00',ch:'SVT1/2',match:'Belgien - Egypten',venue:'Seattle'},
+  {t:'01.00',ch:'TV4',match:'Elfenbenskusten - Ecuador',venue:'Philadelphia'}
+]},
+{d:'Tis 16 jun',m:[
+  {t:'00.00',ch:'TV4',match:'Saudiarabien - Uruguay',venue:'Miami'},
+  {t:'03.00',ch:'TV4',match:'Iran - Nya Zeeland',venue:'Los Angeles'},
+  {t:'21.00',ch:'SVT1',match:'Frankrike - Senegal',venue:'New Jersey'}
+]},
+{d:'Ons 17 jun',m:[
+  {t:'00.00',ch:'TV4',match:'Irak - Norge',venue:'Boston'},
+  {t:'03.00',ch:'TV4',match:'Argentina - Algeriet',venue:'Kansas City'},
+  {t:'06.00',ch:'TV4',match:'Österrike - Jordanien',venue:'San Francisco'},
+  {t:'19.00',ch:'TV4',match:'Portugal - DR Kongo',venue:'Houston'},
+  {t:'22.00',ch:'TV4',match:'England - Kroatien',venue:'Dallas'}
+]},
+{d:'Tor 18 jun',m:[
+  {t:'01.00',ch:'TV4',match:'Ghana - Panama',venue:'Toronto'},
+  {t:'04.00',ch:'TV4',match:'Uzbekistan - Colombia',venue:'Mexico City'},
+  {t:'18.00',ch:'TV4',match:'Tjeckien - Sydafrika',venue:'Atlanta'},
+  {t:'21.00',ch:'TV4',match:'Schweiz - Bosnien och Hercegovina',venue:'Los Angeles'}
+]},
+{d:'Fre 19 jun',m:[
+  {t:'00.00',ch:'TV4',match:'Kanada - Qatar',venue:'Vancouver'},
+  {t:'03.00',ch:'TV4',match:'Mexiko - Sydkorea',venue:'Guadalajara'},
+  {t:'21.00',ch:'SVT2',match:'USA - Australien',venue:'Seattle'}
+]},
+{d:'Lör 20 jun',m:[
+  {t:'00.00',ch:'SVT1',match:'Skottland - Marocko',venue:'Boston'},
+  {t:'03.00',ch:'TV4',match:'Brasilien - Haiti',venue:'Philadelphia'},
+  {t:'06.00',ch:'TV4',match:'Turkiet - Paraguay',venue:'San Francisco'},
+  {t:'19.00',ch:'TV4',match:'Nederländerna - Sverige',venue:'Houston'},
+  {t:'22.00',ch:'TV4',match:'Tyskland - Elfenbenskusten',venue:'Toronto'}
+]},
+{d:'Sön 21 jun',m:[
+  {t:'02.00',ch:'TV4',match:'Ecuador - Curaçao',venue:'Kansas City'},
+  {t:'06.00',ch:'SVT1',match:'Tunisien - Japan',venue:'Monterrey'},
+  {t:'18.00',ch:'TV4',match:'Spanien - Saudiarabien',venue:'Atlanta'},
+  {t:'21.00',ch:'TV4',match:'Belgien - Iran',venue:'Los Angeles'}
+]},
+{d:'Mån 22 jun',m:[
+  {t:'00.00',ch:'TV4',match:'Uruguay - Kap Verde',venue:'Miami'},
+  {t:'03.00',ch:'TV4',match:'Nya Zeeland - Egypten',venue:'Vancouver'},
+  {t:'19.00',ch:'SVT1/2',match:'Argentina - Österrike',venue:'Dallas'},
+  {t:'23.00',ch:'SVT1',match:'Frankrike - Irak',venue:'Philadelphia'}
+]},
+{d:'Tis 23 jun',m:[
+  {t:'02.00',ch:'SVT1',match:'Norge - Senegal',venue:'New Jersey'},
+  {t:'05.00',ch:'TV4',match:'Jordanien - Algeriet',venue:'San Francisco'},
+  {t:'19.00',ch:'SVT1/2',match:'Portugal - Uzbekistan',venue:'Houston'},
+  {t:'22.00',ch:'SVT1',match:'England - Ghana',venue:'Boston'}
+]},
+{d:'Ons 24 jun',m:[
+  {t:'01.00',ch:'TV4',match:'Panama - Kroatien',venue:'Toronto'},
+  {t:'04.00',ch:'TV4',match:'Colombia - DR Kongo',venue:'Guadalajara'},
+  {t:'21.00',ch:'TV4',match:'Schweiz - Kanada',venue:'Vancouver'},
+  {t:'21.00',ch:'TV4',match:'Bosnien och Hercegovina - Qatar',venue:'Seattle'}
+]},
+{d:'Tor 25 jun',m:[
+  {t:'00.00',ch:'TV4',match:'Marocko - Haiti',venue:'Atlanta'},
+  {t:'00.00',ch:'TV4',match:'Skottland - Brasilien',venue:'Miami'},
+  {t:'03.00',ch:'SVT2',match:'Sydafrika - Sydkorea',venue:'Monterrey'},
+  {t:'03.00',ch:'SVT1',match:'Tjeckien - Mexiko',venue:'Mexico City'},
+  {t:'22.00',ch:'SVT1',match:'Curaçao - Elfenbenskusten',venue:'Philadelphia'},
+  {t:'22.00',ch:'SVT1',match:'Ecuador - Tyskland',venue:'New Jersey'}
+]},
+{d:'Fre 26 jun',m:[
+  {t:'01.00',ch:'SVT2',match:'Tunisien - Nederländerna',venue:'Kansas City'},
+  {t:'01.00',ch:'SVT1',match:'Japan - Sverige',venue:'Dallas'},
+  {t:'04.00',ch:'TV4',match:'Turkiet - USA',venue:'Los Angeles'},
+  {t:'04.00',ch:'TV4',match:'Paraguay - Australien',venue:'San Francisco'},
+  {t:'21.00',ch:'TV4',match:'Norge - Frankrike',venue:'Boston'},
+  {t:'21.00',ch:'TV4',match:'Senegal - Irak',venue:'Toronto'}
+]},
+{d:'Lör 27 jun',m:[
+  {t:'02.00',ch:'TV4',match:'Kap Verde - Saudiarabien',venue:'Houston'},
+  {t:'02.00',ch:'TV4',match:'Uruguay - Spanien',venue:'Guadalajara'},
+  {t:'05.00',ch:'TV4',match:'Nya Zeeland - Belgien',venue:'Vancouver'},
+  {t:'05.00',ch:'TV4',match:'Egypten - Iran',venue:'Seattle'},
+  {t:'23.00',ch:'SVT1',match:'Panama - England',venue:'New Jersey'},
+  {t:'23.00',ch:'SVT2',match:'Kroatien - Ghana',venue:'Philadelphia'}
+]},
+{d:'Sön 28 jun',m:[
+  {t:'01.30',ch:'TV4',match:'DR Kongo - Uzbekistan',venue:'Atlanta'},
+  {t:'01.30',ch:'TV4',match:'Colombia - Portugal',venue:'Miami'},
+  {t:'04.00',ch:'TV4',match:'Algeriet - Österrike',venue:'Kansas City'},
+  {t:'04.00',ch:'TV4',match:'Jordanien - Argentina',venue:'Dallas'},
+  {t:'21.00',ch:'TV4',match:'Slutspel: 2A - 2B (16-delsfinal)',venue:''}
+]},
+{d:'Mån 29 jun',m:[
+  {t:'19.00',ch:'TV4',match:'1C - 2F (16-delsfinal)',venue:''},
+  {t:'22.30',ch:'SVT',match:'1E - 3A/B/C/D/F (16-delsfinal)',venue:''}
+]},
+{d:'Tis 30 jun',m:[
+  {t:'03.00',ch:'SVT',match:'1F - 2C (16-delsfinal)',venue:''},
+  {t:'19.00',ch:'TV4',match:'2E - 2I (16-delsfinal)',venue:''},
+  {t:'23.00',ch:'TV4',match:'1I - 3C/D/F/G/H (16-delsfinal)',venue:''}
+]},
+{d:'Ons 1 jul',m:[
+  {t:'03.00',ch:'TV4',match:'1A - 3C/E/F/H/I (16-delsfinal)',venue:''},
+  {t:'18.00',ch:'SVT',match:'1L - 3E/H/I/J/K (16-delsfinal)',venue:''},
+  {t:'22.00',ch:'TV4',match:'1G - 3A/E/H/I/J (16-delsfinal)',venue:''}
+]},
+{d:'Tor 2 jul',m:[
+  {t:'02.00',ch:'TV4',match:'1D - 3B/E/F/I/J (16-delsfinal)',venue:''},
+  {t:'21.00',ch:'SVT',match:'1H - 2J (16-delsfinal)',venue:''}
+]},
+{d:'Fre 3 jul',m:[
+  {t:'01.00',ch:'TV4',match:'2K - 2L (16-delsfinal)',venue:''},
+  {t:'05.00',ch:'TV4',match:'1B - 3E/F/G/I/J (16-delsfinal)',venue:''},
+  {t:'20.00',ch:'TV4',match:'2D - 2G (16-delsfinal)',venue:''}
+]},
+{d:'Lör 4 jul',m:[
+  {t:'00.00',ch:'SVT',match:'1J - 2H (16-delsfinal)',venue:''},
+  {t:'03.30',ch:'SVT',match:'1K - 3D/E/I/J/L (16-delsfinal)',venue:''},
+  {t:'19.00',ch:'TV4',match:'W73 - W75 (Åttondelsfinal)',venue:''},
+  {t:'23.00',ch:'SVT',match:'W74 - W77 (Åttondelsfinal)',venue:''}
+]},
+{d:'Sön 5 jul',m:[
+  {t:'22.00',ch:'TV4',match:'W76 - W78 (Åttondelsfinal)',venue:''}
+]},
+{d:'Mån 6 jul',m:[
+  {t:'02.00',ch:'SVT',match:'W79 - W80 (Åttondelsfinal)',venue:''},
+  {t:'21.00',ch:'TV4',match:'W83 - W84 (Åttondelsfinal)',venue:''}
+]},
+{d:'Tis 7 jul',m:[
+  {t:'02.00',ch:'TV4',match:'W81 - W82 (Åttondelsfinal)',venue:''},
+  {t:'18.00',ch:'TV4',match:'W86 - W88 (Åttondelsfinal)',venue:''},
+  {t:'22.00',ch:'SVT',match:'W85 - W87 (Åttondelsfinal)',venue:''}
+]},
+{d:'Tor 9 jul',m:[
+  {t:'22.00',ch:'TV4',match:'W89 - W90 (Kvartsfinal)',venue:''}
+]},
+{d:'Fre 10 jul',m:[
+  {t:'21.00',ch:'SVT',match:'W93 - W94 (Kvartsfinal)',venue:''}
+]},
+{d:'Lör 11 jul',m:[
+  {t:'23.00',ch:'TV4',match:'W91 - W92 (Kvartsfinal)',venue:''}
+]},
+{d:'Sön 12 jul',m:[
+  {t:'03.00',ch:'SVT',match:'W95 - W96 (Kvartsfinal)',venue:''}
+]},
+{d:'Tis 14 jul',m:[
+  {t:'21.00',ch:'SVT',match:'W97 - W98 (Semifinal)',venue:''}
+]},
+{d:'Ons 15 jul',m:[
+  {t:'21.00',ch:'TV4',match:'W99 - W100 (Semifinal)',venue:''}
+]},
+{d:'Lör 18 jul',m:[
+  {t:'23.00',ch:'SVT',match:'L101 - L102 (Bronsmatch)',venue:''}
+]},
+{d:'Sön 19 jul',m:[
+  {t:'21.00',ch:'TV4',match:'W101 - W102 (VM-FINAL)',venue:''}
+]}
+];
+
+window.openTvModal=function(){
+  var html='<input class="tv-search" id="tv-search" type="text" placeholder="Search team or date..." oninput="wcTvFilter(this.value)">'+
+    '<div id="tv-list">';
+  TV_SCHEDULE.forEach(function(day){
+    html+='<div class="tv-day-block" data-day="'+day.d.toLowerCase()+'">'+
+      '<div class="tv-day">'+day.d+'</div>';
+    day.m.forEach(function(row){
+      var chCls='tv-tv4';
+      if(row.ch.indexOf('SVT2')!==-1) chCls='tv-svt2';
+      else if(row.ch.indexOf('SVT')!==-1) chCls='tv-svt1';
+      html+='<div class="tv-row" data-text="'+(day.d+' '+row.match+' '+row.venue).toLowerCase()+'">'+
+        '<span class="tv-time">'+row.t+'</span>'+
+        '<span class="tv-match">'+row.match+(row.venue?'<span class="tv-venue">'+row.venue+'</span>':'')+'</span>'+
+        '<span class="tv-chan '+chCls+'">'+row.ch+'</span>'+
+      '</div>';
+    });
+    html+='</div>';
+  });
+  html+='</div>';
+
+  document.getElementById('tm-title').innerHTML='\uD83D\uDCFA TV Schedule (Sweden)';
+  document.getElementById('tm-match').innerHTML='All times in Swedish time (CET/CEST) &middot; TV4 &amp; SVT';
+  document.getElementById('tm-body').innerHTML=html;
+  document.getElementById('ticket-modal').classList.add('open');
+  document.body.style.overflow='hidden';
+};
+
+window.wcTvFilter=function(q){
+  var term=q.trim().toLowerCase();
+  document.querySelectorAll('.tv-day-block').forEach(function(block){
+    var rows=block.querySelectorAll('.tv-row');
+    var anyVisible=false;
+    rows.forEach(function(row){
+      var hit=!term||row.getAttribute('data-text').indexOf(term)!==-1;
+      row.style.display=hit?'flex':'none';
+      if(hit) anyVisible=true;
+    });
+    var dayHit=!term||block.getAttribute('data-day').indexOf(term)!==-1;
+    if(dayHit){rows.forEach(function(row){row.style.display='flex';});anyVisible=true;}
+    block.style.display=anyVisible?'block':'none';
+  });
 };
 
 var TICKET_DATA={
