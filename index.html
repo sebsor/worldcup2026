@@ -368,9 +368,11 @@ function load(){
     var data=JSON.parse(x.responseText);
     matches=data.matches.map(function(m){
       var c=convertTime(m.date,m.time);
+      var s1=m.score&&m.score.ft?m.score.ft[0]:m.score1;
+      var s2=m.score&&m.score.ft?m.score.ft[1]:m.score2;
       return {round:m.round,date:m.date,rawTime:m.time,tzDate:c.date,tzTime:c.time,
         team1:m.team1,team2:m.team2,group:m.group||'',ground:m.ground||'',
-        score1:m.score1,score2:m.score2,num:m.num,goals1:m.goals1||[],goals2:m.goals2||[]};
+        score1:s1,score2:s2,num:m.num,goals1:m.goals1||[],goals2:m.goals2||[]};
     });
     buildGroups(); buildTeamGrpMap(); buildStadMatchCounts();
     renderOv(); renderGr(); renderMa('all'); renderSt(); renderSc(); renderFa();
