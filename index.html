@@ -489,8 +489,8 @@ function renderMa(f){
 }
 
 function renderKo(){
-  var byRound={R32:[],R16:[],QF:[],SF:[],FI:[]};
-  var roundMap={'Round of 32':'R32','Round of 16':'R16','Quarter-final':'QF','Semi-final':'SF','Final':'FI'};
+  var byRound={R32:[],R16:[],QF:[],SF:[],FI:[],TP:[]};
+  var roundMap={'Round of 32':'R32','Round of 16':'R16','Quarter-final':'QF','Semi-final':'SF','Final':'FI','Match for third place':'TP'};
   matches.forEach(function(m){var k=roundMap[m.round];if(k) byRound[k].push(m);});
   Object.keys(byRound).forEach(function(k){byRound[k].sort(function(a,b){return (a.num||0)-(b.num||0);});});
   var played=0,total=0;
@@ -526,9 +526,11 @@ function renderKo(){
     if(t.indexOf('winner')!==-1) return 'Match Winner';
     if(t.indexOf('Path')!==-1) return 'Path Winner';
     if(t.indexOf('IC ')!==-1) return 'IC Winner';
+    var lm=t.match(/^L(\d+)$/);
+    if(lm) return 'SF Loser';
     return t;
   }
-  function isPH2(t){return !t||/^[12W3]/.test(t)||t.indexOf('winner')!==-1||t.indexOf('Path')!==-1||t.indexOf('IC ')!==-1;}
+  function isPH2(t){return !t||/^[12WL3]/.test(t)||t.indexOf('winner')!==-1||t.indexOf('Path')!==-1||t.indexOf('IC ')!==-1;}
 
   // Y of match card top for match idx with spacing sp
   function cardTop(idx,sp){return LH+((sp-1)/2)*ROW+idx*sp*ROW;}
@@ -536,7 +538,7 @@ function renderKo(){
   function cardCY(idx,sp){return cardTop(idx,sp)+META+PH/2;}
 
   // Total SVG height
-  var svgH=LH+7*ROW+CH; // 8 R32 matches
+  var svgH=LH+7*ROW+CH+20; // 8 R32 matches + buffer
 
   // Column X positions (left half, then final, then right half)
   // Left: R32=0, conn, R16, conn, QF, conn, SF, conn
@@ -585,7 +587,7 @@ function renderKo(){
       var sc=score!==undefined?'<span style="font-size:10px;font-weight:700;color:'+(isW?FC:'#666')+';margin-left:auto;padding-left:4px">'+score+'</span>':'';
       return '<div style="height:'+SH+'px;background:'+bg+';border:'+(isW?'1.5px solid '+FC:'1px solid #e0e0e0')+
         ';display:flex;align-items:center;padding:0 6px;overflow:hidden;opacity:'+(isL?0.32:1)+'">'+
-        '<span style="font-size:10px;color:'+tc+';font-weight:'+(isW?700:400)+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">'+nm+'</span>'+sc+'</div>';
+        '<span style="font-size:10px;color:'+tc+';font-weight:'+(isW?700:400)+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;text-align:center">'+nm+'</span>'+sc+'</div>';
     }
 
     var inner='<div style="font-size:9px;color:#aaa;height:'+META+'px;line-height:'+META+'px;white-space:nowrap;overflow:hidden">'+
@@ -614,7 +616,7 @@ function renderKo(){
       var sc=score!==undefined?'<span style="font-size:10px;font-weight:700;color:'+(isW?FC:'#666')+';margin-left:auto;padding-left:4px">'+score+'</span>':'';
       return '<div style="height:'+SH+'px;background:'+bg+';border:'+(isW?'1.5px solid '+FC:'1px solid #e0e0e0')+
         ';display:flex;align-items:center;padding:0 6px;overflow:hidden;opacity:'+(isL?0.32:1)+'">'+
-        '<span style="font-size:10px;color:'+tc+';font-weight:'+(isW?700:400)+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">'+nm+'</span>'+sc+'</div>';
+        '<span style="font-size:10px;color:'+tc+';font-weight:'+(isW?700:400)+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;text-align:center">'+nm+'</span>'+sc+'</div>';
     }
 
     var t1=FI?FI.team1:'TBD', t2=FI?FI.team2:'TBD';
@@ -709,6 +711,31 @@ function renderKo(){
   LQF.forEach(function(m,i){fos+=matchFO(m,x.lQF,i,4,'left');});
   LSF.forEach(function(m,i){fos+=matchFO(m,x.lSF,i,8,'left');});
   fos+=finalFO();
+  // 3rd place match - standalone box below final
+  var tp=byRound.TP[0];
+  if(tp){
+    var sfCY2=LH+((8-1)/2)*ROW+META+PH/2; var tpY=sfCY2-META-PH/2+CH+20;
+    var has3=tp.score1!==undefined&&tp.score2!==undefined;
+    var tw1=has3&&(tp.score1-tp.score2>0),tw2=has3&&(tp.score2-tp.score1>0);
+    var tl1=has3&&!tw1,tl2=has3&&!tw2;
+    function tpSlot(name,score,isW,isL){
+      var ph=isPH2(name);
+      var bg=ph?'#f5f5f5':teamBg(name);
+      var tc=ph?'#bbb':'#1a1a1a';
+      var nm=ph?('<span style="font-style:italic;color:#999">'+friendlyPH(name)+'</span>'):(flag(name)+name);
+      var sc=score!==undefined?'<span style="font-size:10px;font-weight:700;color:'+(isW?FC:'#666')+';margin-left:auto;padding-left:4px">'+score+'</span>':'';
+      return '<div style="height:'+SH+'px;background:'+bg+';border:'+(isW?'1.5px solid '+FC:'1px solid #e0e0e0')+';display:flex;align-items:center;padding:0 6px;overflow:hidden;opacity:'+(isL?0.32:1)+'"><span style="font-size:10px;color:'+tc+';font-weight:'+(isW?700:400)+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1;text-align:center">'+nm+'</span>'+sc+'</div>';
+    }
+    var tpInner='<div style="font-size:9px;color:#aaa;height:'+META+'px;line-height:'+META+'px;white-space:nowrap;overflow:hidden">'+fmtDate(tp.tzDate)+' · '+tp.tzTime+' · '+tp.ground+'</div>'+
+      '<div style="overflow:hidden;border-radius:5px 5px 0 0">'+tpSlot(tp.team1,tp.score1,tw1,tl1)+'</div>'+
+      '<div style="height:'+SGAP+'px;background:#eee"></div>'+
+      '<div style="overflow:hidden;border-radius:0 0 5px 5px">'+tpSlot(tp.team2,tp.score2,tw2,tl2)+'</div>';
+    // Center it under the Final column
+    var tpX=x.FIN;
+    fos+='<text x="'+f(tpX+CW/2)+'" y="'+f(tpY-4)+'" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-serif" font-size="9" font-weight="700" fill="#aaa">3RD PLACE</text>';
+    fos+='<foreignObject x="'+f(tpX)+'" y="'+f(tpY)+'" width="'+CW+'" height="'+CH+'"><div xmlns="http://www.w3.org/1999/xhtml">'+tpInner+'</div></foreignObject>';
+    svgH=Math.max(svgH,tpY+CH+10);
+  }
   RSF.forEach(function(m,i){fos+=matchFO(m,x.rSF,i,8,'right');});
   RQF.forEach(function(m,i){fos+=matchFO(m,x.rQF,i,4,'right');});
   R16.forEach(function(m,i){fos+=matchFO(m,x.rR16,i,2,'right');});
@@ -724,7 +751,7 @@ function renderKo(){
   document.getElementById('wc-ko').innerHTML=
     '<div style="font-size:13px;color:#666;margin-bottom:12px">'+played+' of '+total+' matches played.</div>'+
     notice+
-    '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:16px">'+svgStr+'</div>';
+    '<div style="overflow-x:auto;overflow-y:visible;-webkit-overflow-scrolling:touch;padding-bottom:16px">'+svgStr+'</div>';
 }
 
 
