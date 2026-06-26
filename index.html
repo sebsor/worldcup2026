@@ -505,6 +505,29 @@ function renderKo(){
   var LC='#ccc', FC='#1a7a3c';
 
   function f(n){return parseFloat(n.toFixed(1));}
+  function friendlyPH(t){
+    if(!t) return 'TBD';
+    // Winner of specific match
+    var wm=t.match(/^W(\d+)$/);
+    if(wm){
+      var n=parseInt(wm[1]);
+      if(n>=73&&n<=88) return 'R32 Winner';
+      if(n>=89&&n<=96) return 'R16 Winner';
+      if(n>=97&&n<=100) return 'QF Winner';
+      if(n>=101&&n<=102) return 'SF Winner';
+      return 'Match Winner';
+    }
+    // 1st/2nd from group
+    var gm=t.match(/^([12])([A-L])$/);
+    if(gm) return (gm[1]==='1'?'1st':'2nd')+' Group '+gm[2];
+    // Best 3rd place
+    if(t.match(/^3[A-L]/)) return 'Best 3rd';
+    // path/winner text
+    if(t.indexOf('winner')!==-1) return 'Match Winner';
+    if(t.indexOf('Path')!==-1) return 'Path Winner';
+    if(t.indexOf('IC ')!==-1) return 'IC Winner';
+    return t;
+  }
   function isPH2(t){return !t||/^[12W3]/.test(t)||t.indexOf('winner')!==-1||t.indexOf('Path')!==-1||t.indexOf('IC ')!==-1;}
 
   // Y of match card top for match idx with spacing sp
@@ -558,7 +581,7 @@ function renderKo(){
       var ph=isPH2(name);
       var bg=ph?'#f5f5f5':teamBg(name);
       var tc=ph?'#bbb':'#1a1a1a';
-      var nm=ph?(name||'TBD'):(flag(name)+name);
+      var nm=ph?('<span style="font-style:italic;color:#999">'+friendlyPH(name)+'</span>'):(flag(name)+name);
       var sc=score!==undefined?'<span style="font-size:10px;font-weight:700;color:'+(isW?FC:'#666')+';margin-left:auto;padding-left:4px">'+score+'</span>':'';
       return '<div style="height:'+SH+'px;background:'+bg+';border:'+(isW?'1.5px solid '+FC:'1px solid #e0e0e0')+
         ';display:flex;align-items:center;padding:0 6px;overflow:hidden;opacity:'+(isL?0.32:1)+'">'+
@@ -587,7 +610,7 @@ function renderKo(){
       var ph=isPH2(name);
       var bg=ph?'#f5f5f5':teamBg(name);
       var tc=ph?'#bbb':'#1a1a1a';
-      var nm=ph?(name||'TBD'):(flag(name)+name);
+      var nm=ph?('<span style="font-style:italic;color:#999">'+friendlyPH(name)+'</span>'):(flag(name)+name);
       var sc=score!==undefined?'<span style="font-size:10px;font-weight:700;color:'+(isW?FC:'#666')+';margin-left:auto;padding-left:4px">'+score+'</span>':'';
       return '<div style="height:'+SH+'px;background:'+bg+';border:'+(isW?'1.5px solid '+FC:'1px solid #e0e0e0')+
         ';display:flex;align-items:center;padding:0 6px;overflow:hidden;opacity:'+(isL?0.32:1)+'">'+
