@@ -1,4 +1,4 @@
-const CACHE='wc2026-v1';
+const CACHE='wc2026-v5';
 const STATIC=['/','index.html','manifest.json'];
 
 self.addEventListener('install',function(e){
