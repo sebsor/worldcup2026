@@ -491,35 +491,222 @@ function renderMa(f){
 function renderKo(){
   var byRound={R32:[],R16:[],QF:[],SF:[],FI:[]};
   var roundMap={'Round of 32':'R32','Round of 16':'R16','Quarter-final':'QF','Semi-final':'SF','Final':'FI'};
-  matches.forEach(function(m){var k=roundMap[m.round];if(k)byRound[k].push(m);});
-  Object.keys(byRound).forEach(function(k){byRound[k].sort(function(a,b){return(a.num||0)-(b.num||0);});});
+  matches.forEach(function(m){var k=roundMap[m.round];if(k) byRound[k].push(m);});
+  Object.keys(byRound).forEach(function(k){byRound[k].sort(function(a,b){return (a.num||0)-(b.num||0);});});
   var played=0,total=0;
-  Object.keys(byRound).forEach(function(k){total+=byRound[k].length;played+=byRound[k].filter(function(m){return m.score1!==undefined;}).length;});
-
-  function koSlot(name,score,isWinner){
-    var ph=isPH(name);
-    var nameHtml=ph?'<span class="ko-ph">'+(name||'TBD')+'</span>':(flag(name,16)+' '+name);
-    var sc=score!==undefined?'<span class="ko-slot-score">'+score+'</span>':'';
-    return '<div class="ko-slot'+(isWinner?' winner':'')+'">'+nameHtml+sc+'</div>';
-  }
-
-  function koMatch(m){
-    var has=m.score1!==undefined&&m.score2!==undefined,w1=has&&m.score1>m.score2,w2=has&&m.score2>m.score1;
-    return '<div class="ko-match">'+koSlot(m.team1,m.score1,w1)+'<div class="ko-divider"></div>'+koSlot(m.team2,m.score2,w2)+'<div class="ko-meta">'+fmtDate(m.tzDate)+' '+m.tzTime+' &middot; '+m.ground+'</div></div>';
-  }
-
-  var roundLabels=[['R32','Round of 32'],['R16','Round of 16'],['QF','Quarter-finals'],['SF','Semi-finals'],['FI','Final']];
-  var html='<div style="margin-bottom:12px;font-size:13px;color:#666">'+played+' of '+total+' matches played.</div>'+
-    (played===0?'<div class="notice">&#128336; Knockout stage begins 28 June. Teams fill in as the group stage concludes.</div>':'')+
-    '<div class="ko-list">';
-  roundLabels.forEach(function(pair){
-    var ms=byRound[pair[0]];
-    if(!ms.length) return;
-    html+='<div class="ko-round-hdr">'+pair[1]+'</div>';
-    html+=ms.map(koMatch).join('');
+  Object.keys(byRound).forEach(function(k){
+    total+=byRound[k].length;
+    played+=byRound[k].filter(function(m){return m.score1!==undefined;}).length;
   });
-  document.getElementById('wc-ko').innerHTML=html+'</div>';
+
+  // Layout
+  var SH=46,SGAP=3,CW=162,CGAP=36,LH=22,META=18,VGAP=8;
+  var PH=SH*2+SGAP, CH=META+PH, ROW=CH+VGAP;
+  var LC='#ccc', FC='#1a7a3c';
+
+  function f(n){return parseFloat(n.toFixed(1));}
+  function isPH2(t){return !t||/^[12W3]/.test(t)||t.indexOf('winner')!==-1||t.indexOf('Path')!==-1||t.indexOf('IC ')!==-1;}
+
+  // Y of match card top for match idx with spacing sp
+  function cardTop(idx,sp){return LH+((sp-1)/2)*ROW+idx*sp*ROW;}
+  // Y of match center
+  function cardCY(idx,sp){return cardTop(idx,sp)+META+PH/2;}
+
+  // Total SVG height
+  var svgH=LH+7*ROW+CH; // 8 R32 matches
+
+  // Column X positions (left half, then final, then right half)
+  // Left: R32=0, conn, R16, conn, QF, conn, SF, conn
+  // Right: conn, SF, conn, QF, conn, R16, conn, R32
+  var x={};
+  x.lR32=0;
+  x.lConn1=x.lR32+CW;
+  x.lR16=x.lConn1+CGAP;
+  x.lConn2=x.lR16+CW;
+  x.lQF=x.lConn2+CGAP;
+  x.lConn3=x.lQF+CW;
+  x.lSF=x.lConn3+CGAP;
+  x.lConnF=x.lSF+CW;
+  x.FIN=x.lConnF+CGAP;
+  x.rConnF=x.FIN+CW;
+  x.rSF=x.rConnF+CGAP;
+  x.rConn3=x.rSF+CW;
+  x.rQF=x.rConn3+CGAP;
+  x.rConn2=x.rQF+CW;
+  x.rR16=x.rConn2+CGAP;
+  x.rConn1=x.rR16+CW;
+  x.rR32=x.rConn1+CGAP;
+  var totalW=x.rR32+CW;
+
+  var L32=byRound.R32.slice(0,8), R32=byRound.R32.slice(8);
+  var L16=byRound.R16.slice(0,4), R16=byRound.R16.slice(4);
+  var LQF=byRound.QF.slice(0,2),  RQF=byRound.QF.slice(2);
+  var LSF=byRound.SF.slice(0,1),  RSF=byRound.SF.slice(1);
+  var FI=byRound.FI[0];
+
+  var html='';
+
+  // ---- foreignObject for each match card ----
+  function matchFO(m, cx, idx, sp, side){
+    if(!m) return '';
+    var ct=cardTop(idx,sp);
+    var has=m.score1!==undefined&&m.score2!==undefined;
+    var w1=has&&(m.score1-m.score2>0), w2=has&&(m.score2-m.score1>0);
+    var l1=has&&!w1, l2=has&&!w2;
+
+    function slotHtml(name,score,isW,isL){
+      var ph=isPH2(name);
+      var bg=ph?'#f5f5f5':teamBg(name);
+      var tc=ph?'#bbb':'#1a1a1a';
+      var nm=ph?(name||'TBD'):(flag(name)+name);
+      var sc=score!==undefined?'<span style="font-size:10px;font-weight:700;color:'+(isW?FC:'#666')+';margin-left:auto;padding-left:4px">'+score+'</span>':'';
+      return '<div style="height:'+SH+'px;background:'+bg+';border:'+(isW?'1.5px solid '+FC:'1px solid #e0e0e0')+
+        ';display:flex;align-items:center;padding:0 6px;overflow:hidden;opacity:'+(isL?0.32:1)+'">'+
+        '<span style="font-size:10px;color:'+tc+';font-weight:'+(isW?700:400)+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">'+nm+'</span>'+sc+'</div>';
+    }
+
+    var inner='<div style="font-size:9px;color:#aaa;height:'+META+'px;line-height:'+META+'px;white-space:nowrap;overflow:hidden">'+
+      fmtDate(m.tzDate)+' \u00b7 '+m.tzTime+'</div>'+
+      '<div style="overflow:hidden;border-radius:5px 5px 0 0">'+slotHtml(m.team1,m.score1,w1,l1)+'</div>'+
+      '<div style="height:'+SGAP+'px;background:#eee"></div>'+
+      '<div style="overflow:hidden;border-radius:0 0 5px 5px">'+slotHtml(m.team2,m.score2,w2,l2)+'</div>';
+
+    return '<foreignObject x="'+f(cx)+'" y="'+f(ct)+'" width="'+CW+'" height="'+CH+'">'+
+      '<div xmlns="http://www.w3.org/1999/xhtml">'+inner+'</div></foreignObject>';
+  }
+
+  // Final card - centered vertically at SF cy
+  function finalFO(){
+    var sfCY=cardCY(0,8);
+    var ct=sfCY-META-PH/2;
+    var has=FI&&FI.score1!==undefined&&FI.score2!==undefined;
+    var w1=has&&(FI&&FI.score1-FI.score2>0), w2=has&&(FI&&FI.score2-FI.score1>0);
+    var l1=has&&!w1, l2=has&&!w2;
+
+    function slotHtml(name,score,isW,isL){
+      var ph=isPH2(name);
+      var bg=ph?'#f5f5f5':teamBg(name);
+      var tc=ph?'#bbb':'#1a1a1a';
+      var nm=ph?(name||'TBD'):(flag(name)+name);
+      var sc=score!==undefined?'<span style="font-size:10px;font-weight:700;color:'+(isW?FC:'#666')+';margin-left:auto;padding-left:4px">'+score+'</span>':'';
+      return '<div style="height:'+SH+'px;background:'+bg+';border:'+(isW?'1.5px solid '+FC:'1px solid #e0e0e0')+
+        ';display:flex;align-items:center;padding:0 6px;overflow:hidden;opacity:'+(isL?0.32:1)+'">'+
+        '<span style="font-size:10px;color:'+tc+';font-weight:'+(isW?700:400)+';white-space:nowrap;overflow:hidden;text-overflow:ellipsis;flex:1">'+nm+'</span>'+sc+'</div>';
+    }
+
+    var t1=FI?FI.team1:'TBD', t2=FI?FI.team2:'TBD';
+    var s1=FI?FI.score1:undefined, s2=FI?FI.score2:undefined;
+    var inner='<div style="font-size:9px;color:#aaa;height:'+META+'px;line-height:'+META+'px;text-align:center">'+(FI?(fmtDate(FI.tzDate)+' \u00b7 '+FI.tzTime):'&nbsp;')+'</div>'+
+      '<div style="overflow:hidden;border-radius:5px 5px 0 0">'+slotHtml(t1,s1,w1,l1)+'</div>'+
+      '<div style="height:'+SGAP+'px;background:#eee"></div>'+
+      '<div style="overflow:hidden;border-radius:0 0 5px 5px">'+slotHtml(t2,s2,w2,l2)+'</div>';
+
+    return '<foreignObject x="'+f(x.FIN)+'" y="'+f(ct)+'" width="'+CW+'" height="'+CH+'">'+
+      '<div xmlns="http://www.w3.org/1999/xhtml">'+inner+'</div></foreignObject>';
+  }
+
+  // ---- SVG lines ----
+  function line(x1,y1,x2,y2){
+    return '<line x1="'+f(x1)+'" y1="'+f(y1)+'" x2="'+f(x2)+'" y2="'+f(y2)+'" stroke="'+LC+'" stroke-width="1.5" stroke-linecap="round"/>';
+  }
+
+  function linesLR(){
+    var s='';
+    var mx1,mx2,mx3,mx4,y1,y2,yr,yq,yq1,yq2,ysf,rsfCY,yr1,yr2;
+
+    // Left: R32 -> R16
+    for(var i=0;i<4;i++){
+      y1=cardCY(i*2,1); y2=cardCY(i*2+1,1); yr=cardCY(i,2);
+      mx1=x.lR32+CW+CGAP/2;
+      s+=line(x.lR32+CW,y1,mx1,y1)+line(mx1,y1,mx1,yr)+line(mx1,yr,x.lR16,yr);
+      s+=line(x.lR32+CW,y2,mx1,y2)+line(mx1,y2,mx1,yr);
+    }
+    // Left: R16 -> QF
+    for(var i=0;i<2;i++){
+      y1=cardCY(i*2,2); y2=cardCY(i*2+1,2); yr=cardCY(i,4);
+      mx2=x.lR16+CW+CGAP/2;
+      s+=line(x.lR16+CW,y1,mx2,y1)+line(mx2,y1,mx2,yr)+line(mx2,yr,x.lQF,yr);
+      s+=line(x.lR16+CW,y2,mx2,y2)+line(mx2,y2,mx2,yr);
+    }
+    // Left: QF -> SF
+    yq1=cardCY(0,4); yq2=cardCY(1,4); ysf=cardCY(0,8);
+    mx3=x.lQF+CW+CGAP/2;
+    s+=line(x.lQF+CW,yq1,mx3,yq1)+line(mx3,yq1,mx3,ysf)+line(mx3,ysf,x.lSF,ysf);
+    s+=line(x.lQF+CW,yq2,mx3,yq2)+line(mx3,yq2,mx3,ysf);
+    // Left: SF -> Final
+    s+=line(x.lSF+CW,ysf,x.FIN,ysf);
+
+    // Right: Final -> SF
+    rsfCY=cardCY(0,8);
+    s+=line(x.FIN+CW,rsfCY,x.rSF,rsfCY);
+    // Right: SF -> QF
+    yq1=cardCY(0,4); yq2=cardCY(1,4);
+    mx3=x.rSF+CW+CGAP/2;
+    s+=line(x.rSF+CW,rsfCY,mx3,rsfCY)+line(mx3,rsfCY,mx3,yq1)+line(mx3,yq1,x.rQF,yq1);
+    s+=line(mx3,rsfCY,mx3,yq2)+line(mx3,yq2,x.rQF,yq2);
+    // Right: QF -> R16
+    for(var i=0;i<2;i++){
+      yq=cardCY(i,4); yr1=cardCY(i*2,2); yr2=cardCY(i*2+1,2);
+      mx4=x.rQF+CW+CGAP/2;
+      s+=line(x.rQF+CW,yq,mx4,yq)+line(mx4,yq,mx4,yr1)+line(mx4,yr1,x.rR16,yr1);
+      s+=line(mx4,yq,mx4,yr2)+line(mx4,yr2,x.rR16,yr2);
+    }
+    // Right: R16 -> R32
+    for(var i=0;i<4;i++){
+      yr=cardCY(i,2); y1=cardCY(i*2,1); y2=cardCY(i*2+1,1);
+      mx1=x.rR16+CW+CGAP/2;
+      s+=line(x.rR16+CW,yr,mx1,yr)+line(mx1,yr,mx1,y1)+line(mx1,y1,x.rR32,y1);
+      s+=line(mx1,yr,mx1,y2)+line(mx1,y2,x.rR32,y2);
+    }
+    return s;
+  }
+
+  // ---- Round labels ----
+  function labels(){
+    var rounds=[
+      {label:'ROUND OF 32',cx:x.lR32+CW/2},
+      {label:'ROUND OF 16',cx:x.lR16+CW/2},
+      {label:'QF',cx:x.lQF+CW/2},
+      {label:'SF',cx:x.lSF+CW/2},
+      {label:'\uD83C\uDFC6 FINAL',cx:x.FIN+CW/2},
+      {label:'SF',cx:x.rSF+CW/2},
+      {label:'QF',cx:x.rQF+CW/2},
+      {label:'ROUND OF 16',cx:x.rR16+CW/2},
+      {label:'ROUND OF 32',cx:x.rR32+CW/2}
+    ];
+    return rounds.map(function(r){
+      return '<text x="'+f(r.cx)+'" y="'+f(LH-4)+'" text-anchor="middle" font-family="-apple-system,BlinkMacSystemFont,Segoe UI,Arial,sans-serif" font-size="9" font-weight="700" fill="#aaa" letter-spacing="0.5">'+r.label+'</text>';
+    }).join('');
+  }
+
+  // Build all foreignObjects
+  var fos='';
+  L32.forEach(function(m,i){fos+=matchFO(m,x.lR32,i,1,'left');});
+  L16.forEach(function(m,i){fos+=matchFO(m,x.lR16,i,2,'left');});
+  LQF.forEach(function(m,i){fos+=matchFO(m,x.lQF,i,4,'left');});
+  LSF.forEach(function(m,i){fos+=matchFO(m,x.lSF,i,8,'left');});
+  fos+=finalFO();
+  RSF.forEach(function(m,i){fos+=matchFO(m,x.rSF,i,8,'right');});
+  RQF.forEach(function(m,i){fos+=matchFO(m,x.rQF,i,4,'right');});
+  R16.forEach(function(m,i){fos+=matchFO(m,x.rR16,i,2,'right');});
+  R32.forEach(function(m,i){fos+=matchFO(m,x.rR32,i,1,'right');});
+
+  var notice=played===0
+    ?'<div style="background:#fff8e1;border:1px solid #ffe082;border-radius:8px;padding:10px 14px;margin-bottom:12px;font-size:12px;color:#795548">&#128336; Knockout stage begins 28 June. Teams fill in as the group stage concludes.</div>'
+    :'';
+
+  var svgStr='<svg xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" width="'+totalW+'" height="'+svgH+'" style="display:block;overflow:visible">'+
+    labels()+linesLR()+fos+'</svg>';
+
+  document.getElementById('wc-ko').innerHTML=
+    '<div style="font-size:13px;color:#666;margin-bottom:12px">'+played+' of '+total+' matches played.</div>'+
+    notice+
+    '<div style="overflow-x:auto;-webkit-overflow-scrolling:touch;padding-bottom:16px">'+svgStr+'</div>';
 }
+
+
+
+
 
 function renderSt(){
   var STADIUMS=[
